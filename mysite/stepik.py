@@ -1,46 +1,64 @@
-class CPU:
-    def __init__(self, name:str, fr:int):
-        self.name = name
-        self.fr = fr
+import random
+class Cell:
+    def __init__(self, around_mines=0, mine=False):
+        self.around_mines = around_mines
+        self.mine = mine
+        self.fl_open = False
+
+class GamePole:
+    def __init__(self, N, M):
+        self.N = N
+        self.M = M
+        self.pole = []
+        # инициализируем поле
+        for _ in range(self.N):
+            tmp = [Cell() for _ in range(self.N)]
+            self.pole.append(tmp)
+
+    def init(self):
+
+        # расставляем мины
+        mines = random.sample(range(self.N**2), self.M)
+        for mine in mines:
+            x, y = mine // self.N, mine % self.N
+            self.pole[x][y].mine = True
+            self.pole[x][y].around_mines = 0
+            for i in range(max(x - 1, 0), min(x + 2, self.N)):
+                for j in range(max(y - 1, 0), min(y + 2, self.N)):
+                    if not self.pole[i][j].mine:
+                        self.pole[i][j].around_mines += 1
+
+    def show(self):
+        for i in range(self.N):
+            for j in range(self.N):
+                if self.pole[i][j].fl_open or True:
+                    if self.pole[i][j].mine:
+                        print('*', end=' ')
+                    else:
+                        print(self.pole[i][j].around_mines, end=' ')
+                else:
+                    print('#', end=' ')
+            print()
 
 
-class Memory:
-    def __init__(self, name:str, volume:int):
-        self.name = name
-        self.volume = volume
+pole_game = GamePole(10, 12)
+pole_game.init()
+pole_game.show()
 
 
-class MotherBoard:
-    def __init__(self, name: str, cpu: CPU, *mem_slots: Memory):
-        self.total_mem_slots = 4
-        self.name = name
-        self.cpu = cpu
-        self.mem_slots = list(*mem_slots[:4])
+def get_around_mines(i, j):
+    n = 0
+    for k in range(-1, 2):
+        for l in range(-1, 2):
+            ii, jj = k+i, l+j
+            if ii < 0 or jj < 0 or ii >= N or jj >= N:
+                continue
+            if pole_game.pole[ii][jj].mine:
+                n += 1
+    return n
 
-    def get_config(self):
-        lst = []
-        lst.append(f'Материнская плата: {self.name}')
-        lst.append(f'Центральный процессор: {self.cpu.name}, {self.cpu.fr}')
-        lst.append(f'Слотов памяти: {self.total_mem_slots}')
-        lst.append('Память: ' + "; ".join([f'{mem.name} - {mem.volume}' for mem in self.mem_slots]))
-        return lst
-
-
-
-mb = MotherBoard('Материнка', CPU('суперпроц', 1000), [Memory('мозг1', 100), Memory('мозг2', 200)])
-
-assert isinstance(mb, MotherBoard) and hasattr(MotherBoard, 'get_config')
-
-
-def get_config():
-    mem_str = "; ".join([f"{x.name} - {x.volume}" for x in mb.mem_slots])
-
-    return [f"Материнская плата: {mb.name}",
-            f"Центральный процессор: {mb.cpu.name}, {mb.cpu.fr}",
-            f"Слотов памяти: {mb.total_mem_slots}",
-            f"Память: {mem_str}"]
-
-
-res1 = ("".join(mb.get_config())).replace(" ", "")
-res2 = ("".join(get_config())).replace(" ", "")
-assert res1 == res2, "метод get_config возвратил неверные данные"
+N = 10
+for i in range(N):
+    for j in range(N):
+        if not pole_game.pole[i][j].mine:
+            assert pole_game.pole[i][j].around_mines == get_around_mines(i, j), f"неверное число мин вокруг клетки с индексами {i, j}"
